@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ERISA Recovery Claims Management System
 
 ## Overview
@@ -271,3 +272,7 @@ This project is part of the ERISA Recovery Dev Challenge and is intended for dem
 
 This project was developed as part of the ERISA Recovery Dev Challenge to demonstrate skills in Django web development, database management, and interactive data visualization.
 
+=======
+# erisa-challenge-Siri
+Erisa Recovery Dev Challenge
+>>>>>>> 049803b7ea54f69b50d0438096b620d89caaccfc
