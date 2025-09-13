@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}CSV Upload - ERISA Recovery{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>📊 CSV Data Import</h1>
+  
+  <!-- Display messages if any -->
+  {% if messages %}
+    <div class="messages" style="margin-bottom: 20px;">
+      {% for message in messages %}
+        <div class="message {% if message.tags %}{{ message.tags }}{% endif %}" style="
+          padding: 12px 16px;
+          margin-bottom: 10px;
+          border-radius: 6px;
+          {% if message.tags == 'error' %}
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+          {% elif message.tags == 'success' %}
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+          {% else %}
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+          {% endif %}
+        ">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <!-- File Upload Section -->
+    <div class="upload-section" style="
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 2px dashed #ddd;
+      border-radius: 8px;
+      text-align: center;
+      background: #f8f9fa;
+    ">
+      <h3 style="color: #2c3e50; margin-bottom: 15px;">📁 Upload CSV Files</h3>
+      <p style="color: #333; margin-bottom: 20px;">Please upload both the claim list and claim detail CSV files.</p>
+      
+      <div class="file-input" style="margin: 15px 0;">
+        <label for="claim_list_file" style="color: #2c3e50; font-weight: 600; font-size: 16px;"><strong>Claim List File:</strong></label><br>
+        <input type="file" id="claim_list_file" name="claim_list_file" accept=".csv" required style="
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          width: 100%;
+          max-width: 400px;
+          margin-top: 8px;
+        ">
+        <small style="color: #555; font-weight: 400; font-size: 13px; line-height: 1.4; display: block; margin-top: 8px;">
+          Expected format: pipe-delimited CSV with headers (id|patient_name|billed_amount|paid_amount|status|insurer_name|discharge_date)
+        </small>
+      </div>
+      
+      <div class="file-input" style="margin: 15px 0;">
+        <label for="claim_detail_file" style="color: #2c3e50; font-weight: 600; font-size: 16px;"><strong>Claim Detail File:</strong></label><br>
+        <input type="file" id="claim_detail_file" name="claim_detail_file" accept=".csv" required style="
+          padding: 10px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          width: 100%;
+          max-width: 400px;
+          margin-top: 8px;
+        ">
+        <small style="color: #555; font-weight: 400; font-size: 13px; line-height: 1.4; display: block; margin-top: 8px;">
+          Expected format: pipe-delimited CSV without headers (detail_id|claim_id|denial_reason|cpt_codes)
+        </small>
+      </div>
+    </div>
+    
+    <!-- Import Mode Selection -->
+    <div class="mode-selection" style="
+      margin: 20px 0;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    ">
+      <h3 style="color: #2c3e50; margin-bottom: 15px;">⚙️ Import Mode</h3>
+      <p style="color: #333; margin-bottom: 20px;">Choose how to handle existing data during import:</p>
+      
+      <div class="mode-option" onclick="selectMode('smart')" style="
+        margin: 15px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">
+        <input type="radio" name="mode" value="smart" id="mode_smart" checked style="margin-right: 10px;">
+        <label for="mode_smart" style="color: #2c3e50; font-weight: 600; font-size: 16px;"><strong>🧠 Smart Mode (Recommended)</strong></label>
+        <div class="mode-description" style="margin-left: 25px; color: #333; font-size: 14px;">
+          Updates existing claims and adds new ones. This is the safest option for regular data updates.
+        </div>
+      </div>
+      
+      <div class="mode-option" onclick="selectMode('append')" style="
+        margin: 15px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">
+        <input type="radio" name="mode" value="append" id="mode_append" style="margin-right: 10px;">
+        <label for="mode_append" style="color: #2c3e50; font-weight: 600; font-size: 16px;"><strong>➕ Append Mode</strong></label>
+        <div class="mode-description" style="margin-left: 25px; color: #333; font-size: 14px;">
+          Only adds new claims and details. Existing data remains unchanged.
+        </div>
+      </div>
+      
+      <div class="mode-option" onclick="selectMode('overwrite')" style="
+        margin: 15px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      ">
+        <input type="radio" name="mode" value="overwrite" id="mode_overwrite" style="margin-right: 10px;">
+        <label for="mode_overwrite" style="color: #2c3e50; font-weight: 600; font-size: 16px;"><strong>🔄 Overwrite Mode</strong></label>
+        <div class="mode-description" style="margin-left: 25px; color: #333; font-size: 14px;">
+          <span class="warning-text" style="color: #dc3545; font-weight: bold;">⚠️ WARNING: This will replace ALL existing data with the new CSV data!</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Force Import Option -->
+    <div class="force-checkbox" style="margin: 20px 0; text-align: center;">
+      <input type="checkbox" id="force" name="force" style="margin-right: 10px;">
+      <label for="force" style="color: #333; font-weight: 400;"><strong>Skip confirmation prompts</strong></label>
+      <small style="color: #555; font-weight: 400; display: block; margin-top: 5px;">(Use with caution - will bypass safety checks)</small>
+    </div>
+    
+    <!-- Submit Section -->
+    <div class="submit-section" style="text-align: center; margin: 30px 0;">
+      <button type="submit" class="submit-btn" style="
+        background: #007bff;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      ">🚀 Start Import</button>
+    </div>
+  </form>
+  
+  <!-- Instructions -->
+  <div class="import-instructions" style="
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 30px;
+  ">
+    <h3 style="color: #2c3e50; margin-bottom: 15px;">📋 Import Instructions</h3>
+    <ul style="color: #333; line-height: 1.6;">
+      <li style="margin-bottom: 8px;"><strong style="color: #2c3e50;">Smart Mode:</strong> Best for regular updates. Existing claims are updated, new ones are added.</li>
+      <li style="margin-bottom: 8px;"><strong style="color: #2c3e50;">Append Mode:</strong> Use when you only want to add new data without modifying existing records.</li>
+      <li style="margin-bottom: 8px;"><strong style="color: #2c3e50;">Overwrite Mode:</strong> Use with extreme caution - this will delete all existing data and replace it with the CSV content.</li>
+      <li style="margin-bottom: 8px;">Files must be pipe-delimited (|) CSV format.</li>
+      <li style="margin-bottom: 8px;">Large files may take several minutes to process.</li>
+      <li style="margin-bottom: 8px;">Always backup your data before using Overwrite mode.</li>
+    </ul>
+  </div>
+  
+  <!-- Back to Dashboard -->
+  <div style="text-align: center; margin-top: 30px;">
+    <a href="{% url 'claims:dashboard' %}" style="
+      display: inline-block;
+      background: #6c757d;
+      color: white;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: background 0.3s ease;
+    " onmouseover="this.style.background='#5a6268'" onmouseout="this.style.background='#6c757d'">
+      ← Back to Dashboard
+    </a>
+  </div>
+</div>
+
+<script>
+function selectMode(mode) {
+  // Uncheck all radio buttons
+  document.querySelectorAll('input[name="mode"]').forEach(radio => {
+    radio.checked = false;
+  });
+  
+  // Check the selected mode
+  document.getElementById('mode_' + mode).checked = true;
+  
+  // Update visual selection
+  document.querySelectorAll('.mode-option').forEach(option => {
+    option.classList.remove('selected');
+  });
+  
+  // Add selected class to clicked option
+  event.currentTarget.classList.add('selected');
+  
+  // Show warning for overwrite mode
+  if (mode === 'overwrite') {
+    if (!confirm('⚠️ WARNING: Overwrite mode will delete ALL existing data and replace it with the CSV content. Are you absolutely sure?')) {
+      // Revert to smart mode if user cancels
+      document.getElementById('mode_smart').checked = true;
+      document.querySelectorAll('.mode-option').forEach(option => {
+        option.classList.remove('selected');
+      });
+      document.querySelector('.mode-option').classList.add('selected');
+    }
+  }
+}
+
+// Initialize with smart mode selected
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelector('.mode-option').classList.add('selected');
+});
+</script>
+{% endblock %}

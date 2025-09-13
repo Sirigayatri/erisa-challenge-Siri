@@ -1,0 +1,327 @@
+/* Report Page Styles */
+.report-container {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Report Header - Similar to main dashboard */
+.report-header {
+  background: #1f2937 !important;
+  background-color: #1f2937 !important;
+  border-bottom: 1px solid #374151;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.report-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+}
+
+.report-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-fill-color: #ffffff !important;
+  margin: 0 0 8px 0;
+  text-align: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* Force white color with maximum specificity for report title */
+.report-header .report-title {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-fill-color: #ffffff !important;
+}
+
+div.report-header h1.report-title {
+  color: #ffffff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-fill-color: #ffffff !important;
+}
+
+.report-subtitle {
+  font-size: 16px;
+  color: #d1d5db;
+  margin: 0;
+  text-align: center;
+  width: 100%;
+}
+
+/* Card Component */
+.card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.card-header {
+  margin-bottom: 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.card-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Main content area with padding */
+.report-content {
+  padding: 24px;
+}
+
+/* Summary Cards Layout */
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* Summary Card Styles */
+.summary-card {
+  text-align: center;
+}
+
+.summary-number {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0 0 8px 0;
+}
+
+.summary-label {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.summary-number.claims { color: #3b82f6; }
+.summary-number.billed { color: #10b981; }
+.summary-number.paid { color: #f59e0b; }
+.summary-number.underpayment { color: #ef4444; }
+
+/* Financial Summary */
+.financial-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.financial-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.financial-item.billed { border-left-color: #10b981; }
+.financial-item.paid { border-left-color: #f59e0b; }
+.financial-item.underpayment { border-left-color: #ef4444; }
+
+.financial-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.financial-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* Charts Container */
+.charts-container {
+  margin-bottom: 32px;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+.chart-card {
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 300px;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 1279px) {
+  .charts-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .chart-card:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1023px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .summary-card:first-child {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .report-container {
+    padding: 16px;
+  }
+  
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .chart-card:last-child {
+    grid-column: 1;
+  }
+  
+  .card {
+    padding: 20px;
+  }
+  
+  .summary-number {
+    font-size: 36px;
+  }
+  
+  .financial-summary {
+    gap: 12px;
+  }
+  
+  .financial-item {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 479px) {
+  .report-content {
+    padding: 12px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .summary-number {
+    font-size: 32px;
+  }
+  
+  .chart-container {
+    min-height: 250px;
+  }
+  
+  .report-header {
+    min-height: 80px;
+    padding: 16px;
+  }
+  
+  .report-title {
+    font-size: 24px;
+  }
+  
+  .report-subtitle {
+    font-size: 14px;
+  }
+}
+
+/* Chart Legends */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  justify-content: center;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.chart-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+/* Loading State */
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Error State */
+.chart-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #ef4444;
+  font-size: 14px;
+  text-align: center;
+  padding: 20px;
+}

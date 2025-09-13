@@ -1,0 +1,1913 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}ERISA Recovery - Claims Management Dashboard{% endblock %}
+{% block content %}
+{% csrf_token %}
+
+<!-- Load the design system CSS -->
+<link rel="stylesheet" href="{% static 'dashboard-system.css' %}">
+
+<!-- Load HTMX and Alpine.js -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+
+<div class="dashboard-container" 
+     style="background: white;"
+     x-data="{
+       searchTerm: '',
+       searchClaims() {
+         const rows = document.querySelectorAll('.claim-row');
+         rows.forEach(row => {
+           const claimId = row.querySelector('td:first-child').textContent.toLowerCase();
+           const patientName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+           
+           if (claimId.includes(this.searchTerm.toLowerCase()) || patientName.includes(this.searchTerm.toLowerCase())) {
+             row.style.display = '';
+           } else {
+             row.style.display = 'none';
+           }
+         });
+       }
+     }"
+     x-init="searchClaims()">
+    {% csrf_token %}
+  <!-- Header with Logo and Title -->
+  <div class="dashboard-header">
+    <div class="logo-container">
+      <img src="{% static 'ERlogo.png' %}" alt="ERISA Recovery Logo" style="height: 100px; width: auto;">
+    </div>
+    <div class="title-container">
+      <h1 style="color: #ffffff !important; background: none !important; -webkit-background-clip: unset !important; background-clip: unset !important; -webkit-text-fill-color: #ffffff !important; text-fill-color: #ffffff !important;">Claims Management Dashboard</h1>
+      <!-- Cache bust: 2025-09-12-21:25 -->
+    </div>
+  </div>
+      <!-- Dashboard Statistics Cards -->
+  <div class="stats-grid">
+                   <div class="stat-card" style="background: #f8f9fa; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+        <div class="card-content">
+          <div class="card-text">
+            <div class="card-number">{{ total_claims }}</div>
+            <div class="card-label">Total Claims</div>
+          </div>
+          <div class="stat-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-bar-chart-3" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <rect x="7" y="10" width="3" height="7"/>
+              <rect x="12" y="6" width="3" height="11"/>
+              <rect x="17" y="13" width="3" height="4"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+          <div class="stat-card" style="background: #f8f9fa; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+        <div class="card-content">
+          <div class="card-text">
+            <div class="card-number">{{ flagged_claims }}</div>
+            <div class="card-label">Flagged Claims</div>
+          </div>
+          <div class="stat-icon danger">
+            <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-flag" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 15s1-1 3-1 5 2 8 2 4-1 3-1V3s-1 1-3 1-5-2-8-2-4 1-3 1z"/>
+              <line x1="4" x2="4" y1="22" y2="15"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+          <div class="stat-card" style="background: #f8f9fa; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+        <div class="card-content">
+          <div class="card-text">
+            <div class="card-number">{{ total_notes }}</div>
+            <div class="card-label">Total Notes</div>
+          </div>
+          <div class="stat-icon warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-file-text" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" x2="8" y1="13" y2="13"/>
+              <line x1="16" x2="8" y1="17" y2="17"/>
+              <line x1="10" x2="8" y1="9" y2="9"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+          <div class="stat-card" style="background: #f8f9fa; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+        <div class="card-content">
+          <div class="card-text">
+            <div class="card-number">${{ avg_underpayment|floatformat:0 }}</div>
+            <div class="card-label">Avg Underpayment</div>
+          </div>
+          <div class="stat-icon success">
+            <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-dollar-sign" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" x2="12" y1="1" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+  </div>
+
+           <!-- Search and Filter Section -->
+       <div class="search-filter-section" style="
+       background: white;
+       padding: 32px;
+       margin: 0 32px 24px 32px;
+     ">
+    <div class="search-filter-container" style="
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      position: relative;
+    ">
+      <!-- Search Bar -->
+      <div class="search-container" style="position: relative; flex: 1; min-width: 300px;">
+                 <input type="text" 
+                        x-model="searchTerm" 
+                        @input="searchClaims()"
+                        placeholder="Search claims, patients, insurers..." 
+                        style="
+           width: 100%;
+           padding: 16px 48px 16px 20px;
+           border: 1px solid #e5e7eb;
+           border-radius: 12px;
+           font-size: 15px;
+           outline: none;
+           transition: all 0.2s ease;
+           background: #f9fafb;
+           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+           color: #1f2937;
+         " oninput="searchClaims()" onfocus="this.style.background='#ffffff'; this.style.borderColor='#2563eb'" onblur="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb'">
+                 <button onclick="searchClaims()" style="
+           position: absolute;
+           right: 15px;
+           top: 50%;
+           transform: translateY(-50%);
+           background: none;
+           border: none;
+           cursor: pointer;
+           padding: 5px;
+           border-radius: 50%;
+           transition: all 0.2s ease;
+           color: #6b7280;
+         " onmouseover="this.style.backgroundColor='#f3f4f6'; this.style.transform='translateY(-50%) scale(1.1)'" 
+            onmouseout="this.style.backgroundColor='transparent'; this.style.transform='translateY(-50%) scale(1)'">
+           <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-search" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="11" cy="11" r="8"/>
+             <path d="m21 21-4.35-4.35"/>
+           </svg>
+         </button>
+      </div>
+
+             <!-- Filter Button with Dropdown -->
+             <div style="position: relative; display: inline-block;">
+              <button onclick="toggleFilterDropdown()" class="filter-btn" style="
+          background: transparent;
+          color: #6b7280;
+          border: none;
+          padding: 10px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          min-width: 36px;
+          min-height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        " onmouseover="this.style.backgroundColor='#f3f4f6'" 
+           onmouseout="this.style.backgroundColor='transparent'">
+          <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-sliders-horizontal" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="21" y1="4" x2="14" y2="4"/>
+            <line x1="10" y1="4" x2="3" y2="4"/>
+            <line x1="21" y1="12" x2="12" y2="12"/>
+            <line x1="8" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="20" x2="16" y2="20"/>
+            <line x1="12" y1="20" x2="3" y2="20"/>
+            <line x1="14" y1="2" x2="14" y2="6"/>
+            <line x1="8" y1="10" x2="8" y2="14"/>
+            <line x1="16" y1="18" x2="16" y2="22"/>
+            <line x1="12" y1="6" x2="12" y2="10"/>
+          </svg>
+        </button>
+
+                   <!-- Filter Dropdown -->
+      <div id="filterDropdown" style="display: none;
+        margin-top: 10px;
+        padding: 12px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        width: 320px;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: 1000;
+      ">
+       <div class="filter-options" style="
+         display: grid;
+         grid-template-columns: repeat(2, 1fr);
+         gap: 8px;
+       ">
+                 <!-- Insurer Filter -->
+         <div class="filter-group">
+           <h4 style="color: #2d5a5a; margin-bottom: 4px; font-size: 12px; font-weight: 600;">
+             <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-building-2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+               <path d="M6 12H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>
+               <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/>
+               <path d="M10 6h4"/>
+               <path d="M10 10h4"/>
+               <path d="M10 14h4"/>
+               <path d="M10 18h4"/>
+             </svg>
+             Insurer
+           </h4>
+           <div class="filter-options-list">
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Aetna" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Aetna</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Blue Cross" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Blue Cross</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Cigna" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Cigna</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Humana" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Humana</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="UnitedHealth" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">UnitedHealth</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Other" onchange="filterByInsurer()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Other</span>
+             </label>
+           </div>
+         </div>
+
+                 <!-- Status Filter -->
+         <div class="filter-group">
+           <h4 style="color: #2d5a5a; margin-bottom: 4px; font-size: 12px; font-weight: 600;">
+             <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-clipboard-list" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+               <path d="M12 11h4"/>
+               <path d="M12 16h4"/>
+               <path d="M8 11h.01"/>
+               <path d="M8 16h.01"/>
+             </svg>
+             Status
+           </h4>
+           <div class="filter-options-list">
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Denied" onchange="filterByStatusCheckbox()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Denied</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Paid" onchange="filterByStatusCheckbox()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Paid</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Under Review" onchange="filterByStatusCheckbox()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Under Review</span>
+             </label>
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Underpaid" onchange="filterByStatusCheckbox()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Underpaid</span>
+             </label>
+           </div>
+         </div>
+
+                 <!-- Flagged Filter -->
+         <div class="filter-group">
+           <h4 style="color: #2d5a5a; margin-bottom: 6px; font-size: 13px; font-weight: 600;">
+             <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-flag" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <path d="M4 15s1-1 3-1 5 2 8 2 4-1 3-1V3s-1 1-3 1-5-2-8-2-4 1-3 1z"/>
+               <line x1="4" x2="4" y1="22" y2="15"/>
+             </svg>
+             Flagged
+           </h4>
+           <div class="filter-options-list">
+             <label style="display: flex; align-items: center; margin-bottom: 2px; cursor: pointer;">
+               <input type="checkbox" value="Flagged" onchange="filterByFlagged()" style="margin-right: 6px; transform: scale(0.9);">
+               <span style="color: #333; font-size: 11px;">Show Flagged Only</span>
+             </label>
+           </div>
+         </div>
+      </div>
+
+    </div>
+             </div> <!-- Close filter button wrapper -->
+  </div>
+  
+                                   <!-- Claims Table Section -->
+      <div class="claims-section" style="padding: 24px 10px 32px 10px; background: white; margin-top: 16px;">
+        <div style="display: flex; gap: 40px; align-items: flex-start;">
+          <!-- Left Sidebar - View By Status -->
+          <div class="status-sidebar" style="
+            width: 200px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            height: fit-content;
+            flex-shrink: 0;
+            margin-left: -10px;
+          ">
+            <h3 style="
+              color: #1f2937;
+              font-size: 16px;
+              font-weight: 600;
+              margin: 0 0 16px 0;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #e5e7eb;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            ">View By Status</h3>
+            
+            <!-- Status Options -->
+            <div class="status-options">
+              <!-- All Claims -->
+                             <div class="status-option active" onclick="filterByStatus('all')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: #eff6ff;
+                 border-left: 4px solid #2563eb;
+               " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#eff6ff'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #6b7280;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">All Claims</span>
+                </div>
+                <span style="
+                  background: #2563eb;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                ">{{ total_claims }}</span>
+              </div>
+              
+                             <!-- Pending -->
+               <div class="status-option" onclick="filterByStatus('pending')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: white;
+                 border-left: 4px solid transparent;
+               " onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='white'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #d97706;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">Pending</span>
+                </div>
+                <span style="
+                  background: #f59e0b;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                ">{{ pending_count|default:0 }}</span>
+              </div>
+              
+                             <!-- Under Review -->
+               <div class="status-option" onclick="filterByStatus('under_review')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: white;
+                 border-left: 4px solid transparent;
+               " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #4b5563;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">Under Review</span>
+                </div>
+                <span style="
+                  background: #2563eb;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                ">{{ under_review_count|default:0 }}</span>
+              </div>
+              
+                             <!-- Approved/Paid -->
+               <div class="status-option" onclick="filterByStatus('paid')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: white;
+                 border-left: 4px solid transparent;
+               " onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='white'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #059669;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">Paid</span>
+                </div>
+                <span style="
+                  background: #16a34a;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                ">{{ paid_count|default:0 }}</span>
+              </div>
+              
+                             <!-- Denied -->
+               <div class="status-option" onclick="filterByStatus('denied')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: white;
+                 border-left: 4px solid transparent;
+               " onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='white'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #b91c1c;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">Denied</span>
+                </div>
+                <span style="
+                  background: #dc2626;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                ">{{ denied_count|default:0 }}</span>
+              </div>
+              
+                             <!-- Underpaid -->
+               <div class="status-option" onclick="filterByStatus('underpaid')" style="
+                 display: flex;
+                 align-items: center;
+                 justify-content: space-between;
+                 padding: 8px 12px;
+                 margin-bottom: 6px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 transition: all 0.2s ease;
+                 background: white;
+                 border-left: 4px solid transparent;
+               " onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='white'">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #6d28d9;
+                    flex-shrink: 0;
+                  "></div>
+                  <span style="color: #1f2937; font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px;">Underpaid</span>
+                </div>
+                <span style="
+                  background: #7c3aed;
+                  color: white;
+                  padding: 4px 8px;
+                  border-radius: 12px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  min-width: 32px;
+                  text-align: center;
+                ">{{ underpaid_count|default:0 }}</span>
+              </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                             <button onclick="exportToExcel()" style="
+                 width: 100%;
+                 background: #2563eb;
+                 color: white;
+                 border: none;
+                 padding: 10px 12px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 font-size: 13px;
+                 font-weight: 600;
+                 margin-bottom: 10px;
+                 transition: all 0.2s ease;
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 gap: 6px;
+               " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.3)'" 
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-file-spreadsheet" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14,2 14,8 20,8"/>
+                  <path d="M8 13h8"/>
+                  <path d="M8 17h8"/>
+                  <path d="M8 9h8"/>
+                </svg>
+                <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Export to Excel</span>
+              </button>
+              
+                             <a href="{% url 'claims:report' %}" style="
+                 width: 100%;
+                 background: #6b7280;
+                 color: white;
+                 border: none;
+                 padding: 10px 12px;
+                 border-radius: 6px;
+                 cursor: pointer;
+                 font-size: 13px;
+                 font-weight: 600;
+                 transition: all 0.2s ease;
+                 display: flex;
+                 align-items: center;
+                 justify-content: center;
+                 gap: 6px;
+                 text-decoration: none;
+               " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(107, 114, 128, 0.3)'" 
+                  onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-bar-chart-3" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 3v18h18"/>
+                  <rect x="7" y="10" width="3" height="7"/>
+                  <rect x="12" y="6" width="3" height="11"/>
+                  <rect x="17" y="13" width="3" height="4"/>
+                </svg>
+                <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Generate Report</span>
+              </a>
+            </div>
+
+            <!-- CSV Upload Button -->
+            <div style="margin-top: 10px;">
+              <input type="file" 
+                     id="csvFileInput" 
+                     accept=".csv" 
+                     style="display: none;" />
+              <button onclick="document.getElementById('csvFileInput').click()" 
+                      id="uploadBtn"
+                      style="
+                        width: 100%;
+                        background: linear-gradient(135deg, #059669, #047857);
+                        color: white;
+                        border: none;
+                        padding: 10px 12px;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 13px;
+                        font-weight: 600;
+                        transition: all 0.2s ease;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 6px;
+                      " 
+                      onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(5, 150, 105, 0.3)'" 
+                      onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-upload" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7,10 12,15 17,10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Upload CSV Data</span>
+              </button>
+              <div id="uploadStatus" style="margin-top: 8px; font-size: 11px; color: #6b7280; text-align: center;"></div>
+            </div>
+          </div>
+          
+          <!-- Main Claims Table -->
+          <div class="claims-table-container" style="
+            background: white;
+            margin-bottom: 0;
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            min-width: 0;
+          ">
+             <table class="claims-table" style="
+         width: 100%;
+         border-collapse: collapse;
+         font-size: 14px;
+         background: transparent;
+       ">
+                  <thead style="
+            background: transparent;
+            color: #1f2937;
+          ">
+          <tr>
+                                                   <th style="padding: 8px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Claim ID</th>
+              <th style="padding: 8px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Patient Name</th>
+              <th style="padding: 8px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Insurer</th>
+              <th style="padding: 8px 16px; text-align: left; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Status</th>
+              <th style="padding: 8px 16px; text-align: right; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Billed Amount</th>
+              <th style="padding: 8px 16px; text-align: right; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Paid Amount</th>
+              <th style="padding: 8px 16px; text-align: right; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Underpayment</th>
+              <th style="padding: 8px 16px; text-align: center; font-weight: 600; font-size: 13px; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for claim in claims %}
+                                           <tr class="claim-row" data-claim-id="{{ claim.id }}" data-has-flags="{% if claim.flags.exists %}true{% else %}false{% endif %}" style="
+              border-bottom: 1px solid #f3f4f6;
+              transition: background-color 0.2s ease;
+              background-color: white;
+            " onmouseover="this.style.backgroundColor='#f0f9ff'" onmouseout="this.style.backgroundColor='white'">
+                                                                             <td style="padding: 6px 16px; font-weight: 600; color: #2563eb; font-size: 14px;">
+                                                                                   <button onclick="toggleDetails({{ claim.id }})" 
+                                                                                           class="expand-arrow" 
+                                                                                           id="arrow-{{ claim.id }}" 
+                                                                                           style="
+                                            background: none;
+                                            border: none;
+                                            cursor: pointer;
+                                            padding: 4px;
+                                            margin-right: 8px;
+                                            color: #6b7280;
+                                            transition: all 0.2s ease;
+                                            display: inline-flex;
+                                            align-items: center;
+                                            justify-content: center;
+                                            border-radius: 4px;
+                                            min-width: 24px;
+                                            min-height: 24px;
+                                          " onmouseover="this.style.color='#2563eb'; this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.color='#6b7280'; this.style.backgroundColor='transparent'">
+                                           <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-right" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                             <polyline points="9,18 15,12 9,6"/>
+                                           </svg>
+                                         </button>
+                                         {{ claim.id }}
+                                       </td>
+              <td style="padding: 6px 16px; color: #1f2937; font-size: 14px;">{{ claim.patient_name }}</td>
+              <td style="padding: 6px 16px; color: #374151; font-size: 14px;">{{ claim.insurer_name }}</td>
+                          <td style="padding: 6px 16px;">
+               <span class="status-badge status-{{ claim.status|lower|cut:' ' }}" style="
+                 padding: 8px 16px;
+                 border-radius: 20px;
+                 font-size: 12px;
+                 font-weight: 600;
+                 text-transform: uppercase;
+                 letter-spacing: 0.05em;
+                 {% if claim.status == 'Denied' %}
+                   background: #fef2f2;
+                   color: #dc2626;
+                 {% elif claim.status == 'Paid' %}
+                   background: #f0fdf4;
+                   color: #16a34a;
+                 {% elif claim.status == 'Under Review' %}
+                   background: #fffbeb;
+                   color: #f59e0b;
+                 {% elif claim.status == 'Underpaid' %}
+                   background: #eff6ff;
+                   color: #2563eb;
+                 {% else %}
+                   background: #f9fafb;
+                   color: #6b7280;
+                 {% endif %}
+               ">{{ claim.status }}</span>
+             </td>
+                           <td style="padding: 6px 16px; text-align: right; color: #1f2937; font-weight: 600; font-size: 14px;">${{ claim.billed_amount|floatformat:2 }}</td>
+              <td style="padding: 6px 16px; text-align: right; color: #1f2937; font-weight: 600; font-size: 14px;">${{ claim.paid_amount|floatformat:2 }}</td>
+              <td style="padding: 6px 16px; text-align: right; color: #dc2626; font-weight: 600; font-size: 14px;">${{ claim.underpayment|floatformat:2 }}</td>
+                          <td style="padding: 6px 16px; text-align: center;">
+                                                               <div class="action-icons" style="display: flex; gap: 4px; justify-content: center;">
+                                     <button onclick="viewFlags({{ claim.id }})" 
+                                             title="View Flags" style="
+                      background: none;
+                      border: none;
+                      cursor: pointer;
+                      padding: 3px;
+                      border-radius: 3px;
+                      transition: all 0.2s ease;
+                      color: #dc2626;
+                    " onmouseover="this.style.backgroundColor='#fef2f2'; this.style.transform='scale(1.05)'" 
+                       onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)'">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-flag" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15s1-1 3-1 5 2 8 2 4-1 3-1V3s-1 1-3 1-5-2-8-2-4 1-3 1z"/>
+                        <line x1="4" x2="4" y1="22" y2="15"/>
+                      </svg>
+                    </button>
+                    
+                                         <button onclick="addFlag({{ claim.id }})" 
+                                                 title="Add Flag" style="
+                       background: none;
+                       border: none;
+                       cursor: pointer;
+                       padding: 3px;
+                       border-radius: 3px;
+                       transition: all 0.2s ease;
+                       color: #16a34a;
+                     " onmouseover="this.style.backgroundColor='#f0fdf4'; this.style.transform='scale(1.05)'" 
+                        onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)'">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-plus" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                         <line x1="12" y1="5" x2="12" y2="19"/>
+                         <line x1="5" y1="12" x2="19" y2="12"/>
+                       </svg>
+                     </button>
+                    
+                    <button onclick="addNote({{ claim.id }})" 
+                            title="Add Notes" style="
+                      background: none;
+                      border: none;
+                      cursor: pointer;
+                      padding: 3px;
+                      border-radius: 3px;
+                      transition: all 0.2s ease;
+                      color: #7c3aed;
+                    " onmouseover="this.style.backgroundColor='#faf5ff'; this.style.transform='scale(1.05)'" 
+                       onmouseout="this.style.backgroundColor='transparent'; this.style.transform='scale(1)'">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-file-text" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" x2="16" y1="13" y2="17"/>
+                        <line x1="10" x2="10" y1="9" y2="9"/>
+                      </svg>
+                    </button>
+                 </div>
+             </td>
+          </tr>
+          
+          <!-- Expandable Details Row -->
+          <tr class="claim-details-row" id="details-{{ claim.id }}" style="display: none;">
+            <td colspan="8" style="padding: 0;">
+              <div class="details-content" style="
+                background: transparent;
+                padding: 20px;
+                border-top: 2px solid #e9ecef;
+              ">
+                <div class="details-grid" style="
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                  gap: 20px;
+                ">
+                  <!-- Claim Details -->
+                  <div class="detail-section claim-info-section">
+                    <h4 style="color: #2d5a5a; margin-bottom: 15px; font-size: 16px;">📋 Claim Information</h4>
+                    <div class="detail-item" style="margin-bottom: 10px;">
+                      <strong style="color: #333;">Discharge Date:</strong> 
+                      <span style="color: #666;">{{ claim.discharge_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="detail-item" style="margin-bottom: 10px;">
+                      <strong style="color: #333;">Underpayment:</strong> 
+                      <span style="color: #dc3545; font-weight: 600;">${{ claim.underpayment|floatformat:2 }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Denial Reason and CPT Codes -->
+                  <div class="detail-section medical-details-section">
+                    <h4 style="color: #2d5a5a; margin-bottom: 15px; font-size: 16px;">🏥 Medical Details</h4>
+                    <div class="detail-item" style="margin-bottom: 10px;">
+                      <strong style="color: #333;">Denial Reason:</strong> 
+                      <span style="color: #666;">{{ claim.detail.denial_reason|default:"Not specified" }}</span>
+                    </div>
+                    <div class="detail-item" style="margin-bottom: 10px;">
+                      <strong style="color: #333;">CPT Codes:</strong> 
+                      <span style="color: #666;">{{ claim.detail.cpt_codes|default:"Not specified" }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Flags Section -->
+                  <div class="detail-section flags-section">
+                    <h4 style="color: #2d5a5a; margin-bottom: 15px; font-size: 16px;">🚩 Flags</h4>
+                    <div id="flags-{{ claim.id }}" class="flags-list">
+                      {% for flag in claim.flags.all %}
+                        <div class="flag-item" style="
+                          background: transparent;
+                          padding: 10px;
+                          margin-bottom: 8px;
+                          border-left: 3px solid #dc3545;
+                        ">
+                          <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                            {{ flag.created_at|date:"M d, Y H:i" }}
+                          </div>
+                          <div style="color: #333;">Flagged by: {{ flag.created_by|default:"System" }}</div>
+                        </div>
+                      {% empty %}
+                        <div style="color: #999; font-style: italic;">No flags yet</div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                  
+                  <!-- Notes Section -->
+                  <div class="detail-section notes-section">
+                    <h4 style="color: #2d5a5a; margin-bottom: 15px; font-size: 16px;">📝 Notes</h4>
+                    <div id="notes-{{ claim.id }}" class="notes-list">
+                      {% for note in claim.notes.all %}
+                        <div class="note-item" style="
+                          background: #f8f9fa;
+                          padding: 10px;
+                          margin-bottom: 8px;
+                          border-left: 3px solid #2d5a5a;
+                          border-radius: 0 4px 4px 0;
+                        ">
+                          <div style="color: #666; font-size: 12px; margin-bottom: 5px;">
+                            {{ note.created_at|date:"M d, Y H:i" }}
+                          </div>
+                          <div style="color: #333;">{{ note.text }}</div>
+                        </div>
+                      {% empty %}
+                        <div style="color: #999; font-style: italic;">No notes yet</div>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+                 </tbody>
+       </table>
+       
+               <!-- Pagination Info and Load More Button -->
+        <div class="pagination-section" style="
+          padding: 20px;
+          background: transparent;
+          border-top: 1px solid #e9ecef;
+          text-align: center;
+        ">
+         <div class="pagination-info" style="
+           margin-bottom: 15px;
+           color: #666;
+           font-size: 14px;
+         ">
+           Showing claims {{ showing_start }} - {{ showing_end }} of {{ total_filtered_claims }}
+           {% if total_filtered_claims > 100 %}
+             (limited to first 100 claims)
+           {% endif %}
+         </div>
+         
+                             <!-- Navigation Arrow Buttons -->
+           <div class="pagination-arrows" style="
+             display: flex;
+             gap: 10px;
+             justify-content: center;
+             align-items: center;
+           ">
+
+            <!-- Previous button always visible but disabled when no previous page -->
+                         <button onclick="loadPreviousClaims()" class="nav-arrow-btn" style="
+               background: #6b7280;
+               color: white;
+               border: none;
+               width: 44px;
+               height: 44px;
+               border-radius: 12px;
+               cursor: pointer;
+               font-size: 18px;
+               transition: all 0.2s ease;
+               box-shadow: 0 1px 3px rgba(107, 114, 128, 0.2);
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+             " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(107, 114, 128, 0.3)'" 
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 1px 3px rgba(107, 114, 128, 0.2)'">
+               <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-left" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="15,18 9,12 15,6"/>
+               </svg>
+             </button>
+             
+             <!-- Next button always visible but disabled when no more pages -->
+             <button onclick="loadMoreClaims()" class="nav-arrow-btn" id="nextBtn" style="
+               background: #2563eb;
+               color: white;
+               border: none;
+               width: 44px;
+               height: 44px;
+               border-radius: 12px;
+               cursor: pointer;
+               font-size: 18px;
+               transition: all 0.2s ease;
+               box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+               {% if not has_more %}opacity: 0.5; cursor: not-allowed;{% endif %}
+             " onmouseover="{% if has_more %}this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(37, 99, 235, 0.3)'{% endif %}" 
+                onmouseout="{% if has_more %}this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 1px 3px rgba(37, 99, 235, 0.2)'{% endif %}">
+               <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-right" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="9,18 15,12 9,6"/>
+               </svg>
+             </button>
+          </div>
+         
+         {% if not has_more and not has_previous %}
+         <div style="color: #999; font-style: italic; font-size: 14px;">
+           All claims loaded
+         </div>
+         {% endif %}
+       </div>
+     </div>
+   </div>
+ </div>
+
+<!-- Note Form Modal -->
+<div id="noteModal" class="note-modal" style="
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+">
+  <div class="note-modal-content" style="
+    background-color: white;
+    margin: 10% auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  ">
+    <div class="note-modal-header" style="
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e9ecef;
+    ">
+      <h3 style="margin: 0; color: #2d5a5a; font-size: 1.5rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-file-text" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <line x1="16" x2="8" y1="13" y2="13"/>
+          <line x1="16" x2="8" y1="17" y2="17"/>
+          <line x1="10" x2="8" y1="9" y2="9"/>
+        </svg>
+        Add Note
+      </h3>
+      <button onclick="hideNoteForm()" style="
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #6c757d;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      " onmouseover="this.style.backgroundColor='#f8f9fa'; this.style.color='#dc3545'" 
+         onmouseout="this.style.backgroundColor='transparent'; this.style.color='#6c757d'">✕</button>
+    </div>
+    
+    <form id="noteForm" onsubmit="saveNote(event)">
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="noteText" style="
+          display: block;
+          margin-bottom: 8px;
+          color: #2d5a5a;
+          font-weight: 600;
+          font-size: 14px;
+        ">Note Text:</label>
+        <textarea id="noteText" name="noteText" rows="4" required style="
+          width: 100%;
+          padding: 12px;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 14px;
+          font-family: inherit;
+          resize: vertical;
+          outline: none;
+          transition: border-color 0.3s ease;
+        " onfocus="this.style.borderColor='#2d5a5a'" onblur="this.style.borderColor='#e9ecef'"
+           placeholder="Enter your note here..."></textarea>
+      </div>
+      
+      <div class="form-actions" style="
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+      ">
+        <button type="button" onclick="hideNoteForm()" style="
+          background: linear-gradient(135deg, #6c757d, #5a6268);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          ❌ Cancel
+        </button>
+        <button type="submit" style="
+          background: linear-gradient(135deg, #2d5a5a, #4a7c59);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+        " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+          💾 Save Note
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+/* Header heading styles moved to external CSS file */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</style>
+
+<script>
+// Global variables
+let currentClaimId = null;
+let activeFilters = {
+  insurer: [],
+  status: [],
+  flagged: false
+};
+
+// Search functionality - now handled by Alpine.js
+
+// Filter functionality - now handled by Alpine.js
+
+// Restore essential JavaScript functions
+function toggleFilterDropdown() {
+  console.log('toggleFilterDropdown called');
+  const dropdown = document.getElementById('filterDropdown');
+  if (dropdown) {
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+      dropdown.style.display = 'block';
+      console.log('Filter dropdown shown');
+      // Add click outside to close
+      setTimeout(() => {
+        document.addEventListener('click', closeFilterOnClickOutside);
+      }, 100);
+    } else {
+      dropdown.style.display = 'none';
+      console.log('Filter dropdown hidden');
+      document.removeEventListener('click', closeFilterOnClickOutside);
+    }
+  } else {
+    console.log('Filter dropdown not found');
+  }
+}
+
+function closeFilterOnClickOutside(event) {
+  const dropdown = document.getElementById('filterDropdown');
+  const filterButton = event.target.closest('.filter-btn');
+  
+  if (dropdown && !dropdown.contains(event.target) && !filterButton) {
+    dropdown.style.display = 'none';
+    console.log('Filter dropdown closed by clicking outside');
+    document.removeEventListener('click', closeFilterOnClickOutside);
+  }
+}
+
+function toggleDetails(claimId) {
+  console.log('toggleDetails called for claim:', claimId);
+  const detailsRow = document.getElementById(`details-${claimId}`);
+  const arrow = document.getElementById(`arrow-${claimId}`);
+  
+  console.log('Details row found:', detailsRow);
+  
+  if (detailsRow) {
+    if (detailsRow.style.display === 'none' || detailsRow.style.display === '') {
+      detailsRow.style.display = 'table-row';
+      if (arrow) {
+        arrow.innerHTML = '▼';
+      }
+    } else {
+      detailsRow.style.display = 'none';
+      if (arrow) {
+        arrow.innerHTML = '▶';
+      }
+    }
+  } else {
+    console.log('Details row not found for claim:', claimId);
+  }
+}
+
+function addFlag(claimId) {
+  console.log('addFlag called for claim:', claimId);
+  // Show flag form
+  showFlagForm(claimId);
+}
+
+function showFlagForm(claimId) {
+  const flagForm = document.getElementById('flagForm');
+  if (flagForm) {
+    flagForm.style.display = 'block';
+    document.getElementById('flagClaimId').value = claimId;
+  }
+}
+
+function hideFlagForm() {
+  const flagForm = document.getElementById('flagForm');
+  if (flagForm) {
+    flagForm.style.display = 'none';
+  }
+}
+
+function addNote(claimId) {
+  console.log('addNote called for claim:', claimId);
+  showNoteForm(claimId);
+}
+
+function showNoteForm(claimId) {
+  const noteForm = document.getElementById('noteForm');
+  if (noteForm) {
+    noteForm.style.display = 'block';
+    document.getElementById('noteClaimId').value = claimId;
+  }
+}
+
+function hideNoteForm() {
+  const noteForm = document.getElementById('noteForm');
+  if (noteForm) {
+    noteForm.style.display = 'none';
+  }
+}
+
+// CSV Upload functionality
+function uploadCSV() {
+  const fileInput = document.getElementById('csvFileInput');
+  const uploadBtn = document.getElementById('uploadBtn');
+  const statusSpan = document.getElementById('uploadStatus');
+  
+  if (!fileInput.files[0]) {
+    statusSpan.textContent = 'Please select a CSV file first';
+    statusSpan.style.color = '#dc2626';
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('claim_list_file', fileInput.files[0]);
+  
+  // Show loading state
+  uploadBtn.disabled = true;
+  uploadBtn.innerHTML = '⏳ Uploading...';
+  statusSpan.textContent = 'Uploading and processing CSV...';
+  statusSpan.style.color = '#2563eb';
+  
+  fetch('{% url "claims:csv_upload" %}', {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      statusSpan.textContent = `✅ Success! ${data.message}`;
+      statusSpan.style.color = '#059669';
+      
+      // Reload the page to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } else {
+      statusSpan.textContent = `❌ Error: ${data.message}`;
+      statusSpan.style.color = '#dc2626';
+    }
+  })
+  .catch(error => {
+    console.error('Upload error:', error);
+    statusSpan.textContent = '❌ Upload failed. Please try again.';
+    statusSpan.style.color = '#dc2626';
+  })
+  .finally(() => {
+    // Reset button state
+    uploadBtn.disabled = false;
+    uploadBtn.innerHTML = `
+      <svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-upload" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7,10 12,15 17,10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Upload CSV Data</span>
+    `;
+  });
+}
+
+// Handle file selection
+document.getElementById('csvFileInput').addEventListener('change', function(e) {
+  const statusSpan = document.getElementById('uploadStatus');
+  if (e.target.files[0]) {
+    statusSpan.textContent = `Selected: ${e.target.files[0].name}`;
+    statusSpan.style.color = '#059669';
+  } else {
+    statusSpan.textContent = '';
+  }
+});
+
+// Sidebar status filtering
+function filterByStatus(status) {
+  console.log('filterByStatus called with status:', status);
+  
+  // Update active state in sidebar
+  document.querySelectorAll('.status-option').forEach(option => {
+    option.classList.remove('active');
+    option.style.background = 'white';
+    option.style.borderLeft = '4px solid transparent';
+  });
+  
+  // Highlight selected option
+  const selectedOption = event.currentTarget;
+  console.log('Selected option:', selectedOption);
+  selectedOption.classList.add('active');
+  
+  if (status === 'all') {
+    selectedOption.style.background = '#eff6ff';
+    selectedOption.style.borderLeft = '4px solid #2563eb';
+    console.log('Showing all claims');
+    showAllClaims();
+  } else {
+    // Set appropriate colors based on status
+    let bgColor, borderColor;
+    switch(status) {
+      case 'pending':
+        bgColor = '#fefce8';
+        borderColor = '#d97706';
+        break;
+      case 'under_review':
+        bgColor = '#f1f5f9';
+        borderColor = '#4b5563';
+        break;
+      case 'paid':
+        bgColor = '#f0fdf4';
+        borderColor = '#059669';
+        break;
+      case 'denied':
+        bgColor = '#fef2f2';
+        borderColor = '#b91c1c';
+        break;
+      case 'underpaid':
+        bgColor = '#f3f4f6';
+        borderColor = '#6d28d9';
+        break;
+    }
+    selectedOption.style.background = bgColor;
+    selectedOption.style.borderLeft = `4px solid ${borderColor}`;
+    
+    console.log('Filtering claims by status:', status);
+    // Filter claims by status
+    filterClaimsByStatus(status);
+  }
+}
+
+function filterClaimsByStatus(status) {
+  console.log('filterClaimsByStatus called with status:', status);
+  const rows = document.querySelectorAll('.claim-row');
+  console.log('Found claim rows:', rows.length);
+  
+  rows.forEach((row, index) => {
+    const statusCell = row.querySelector('td:nth-child(4) .status-badge');
+    if (statusCell) {
+      const claimStatus = statusCell.textContent.toLowerCase().replace(/\s+/g, '_');
+      console.log(`Row ${index}: claim status = "${claimStatus}", filtering for "${status}"`);
+      if (claimStatus === status) {
+        row.style.display = '';
+        console.log(`Row ${index}: showing`);
+      } else {
+        row.style.display = 'none';
+        console.log(`Row ${index}: hiding`);
+      }
+    } else {
+      console.log(`Row ${index}: no status badge found`);
+    }
+  });
+}
+
+function filterByInsurer() {
+  console.log('filterByInsurer called');
+  const checkboxes = document.querySelectorAll('input[value="Aetna"], input[value="Blue Cross"], input[value="Cigna"], input[value="Humana"], input[value="UnitedHealth"], input[value="Other"]');
+  activeFilters.insurer = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+  console.log('Active insurer filters:', activeFilters.insurer);
+  applyClientSideFilters();
+}
+
+// Legacy filterByStatus function for checkbox filters (kept for compatibility)
+function filterByStatusCheckbox() {
+  const checkboxes = document.querySelectorAll('input[value="Denied"], input[value="Paid"], input[value="Under Review"], input[value="Underpaid"]');
+  activeFilters.status = Array.from(checkboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+  applyClientSideFilters();
+}
+
+function filterByFlagged() {
+  const checkbox = document.querySelector('input[value="Flagged"]');
+  activeFilters.flagged = checkbox.checked;
+  console.log('Flagged filter changed:', activeFilters.flagged);
+  applyClientSideFilters();
+}
+
+function clearAllFilters() {
+  // Uncheck all checkboxes
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  
+  // Reset active filters
+  activeFilters = { insurer: [], status: [], flagged: false };
+  
+  // Show all claims
+  showAllClaims();
+  updateVisibleRowCount();
+}
+
+function showAllClaims() {
+  const rows = document.querySelectorAll('.claim-row');
+  rows.forEach(row => row.style.display = '');
+}
+
+function applyClientSideFilters() {
+  const rows = document.querySelectorAll('.claim-row');
+  
+  rows.forEach(row => {
+    let shouldShow = true;
+    
+    // Check insurer filter
+    if (activeFilters.insurer.length > 0) {
+      const insurerCell = row.querySelector('td:nth-child(3)'); // Insurer column
+      if (insurerCell) {
+        const insurerText = insurerCell.textContent.trim();
+        const matchesInsurer = activeFilters.insurer.some(insurer => 
+          insurerText.toLowerCase().includes(insurer.toLowerCase())
+        );
+        if (!matchesInsurer) shouldShow = false;
+      }
+    }
+    
+    // Check status filter
+    if (activeFilters.status.length > 0) {
+      const statusCell = row.querySelector('td:nth-child(4)'); // Status column
+      if (statusCell) {
+        const statusBadge = statusCell.querySelector('.status-badge');
+        if (statusBadge) {
+          const statusText = statusBadge.textContent.trim();
+          const matchesStatus = activeFilters.status.some(status => 
+            statusText.toLowerCase().includes(status.toLowerCase())
+          );
+          if (!matchesStatus) shouldShow = false;
+        }
+      }
+    }
+    
+    // Check flagged filter
+    if (activeFilters.flagged) {
+      // Check if the row has a data attribute indicating it has flags
+      const hasFlags = row.getAttribute('data-has-flags') === 'true';
+      const claimId = row.querySelector('td:first-child').textContent.trim();
+      console.log(`Claim ${claimId}: hasFlags=${hasFlags}`);
+      if (!hasFlags) shouldShow = false;
+    }
+    
+    // Show or hide the row
+    row.style.display = shouldShow ? '' : 'none';
+  });
+  
+  // Update visible row count
+  updateVisibleRowCount();
+}
+
+function updateVisibleRowCount() {
+  const visibleRows = document.querySelectorAll('.claim-row:not([style*="display: none"])');
+  console.log(`Showing ${visibleRows.length} filtered rows`);
+}
+
+function applyFilters() {
+  // Reset pagination when filters are applied
+  currentPage = 1;
+  
+  // Reload claims with current filters
+  loadClaimsPage(currentPage);
+}
+
+// Action functions
+function toggleDetails(claimId) {
+  console.log('toggleDetails called for claim:', claimId);
+  const detailsRow = document.getElementById(`details-${claimId}`);
+  const arrow = document.getElementById(`arrow-${claimId}`);
+  
+  console.log('Details row found:', detailsRow);
+  console.log('Arrow found:', arrow);
+  
+  if (detailsRow && arrow) {
+    if (detailsRow.style.display === 'table-row') {
+      // Collapse details
+      console.log('Collapsing details for claim:', claimId);
+      detailsRow.style.display = 'none';
+      arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-right" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9,18 15,12 9,6"/>
+      </svg>`;
+    } else {
+      // Expand details - show all sections except flags
+      console.log('Expanding details for claim:', claimId);
+      hideAllSections();
+      detailsRow.style.display = 'table-row';
+      
+      const claimInfoSection = detailsRow.querySelector('.claim-info-section');
+      const medicalDetailsSection = detailsRow.querySelector('.medical-details-section');
+      const notesSection = detailsRow.querySelector('.notes-section');
+      const flagsSection = detailsRow.querySelector('.flags-section');
+      
+      if (claimInfoSection) claimInfoSection.style.display = 'block';
+      if (medicalDetailsSection) medicalDetailsSection.style.display = 'block';
+      if (notesSection) notesSection.style.display = 'block';
+      if (flagsSection) flagsSection.style.display = 'none'; // Hide flags
+      
+      // Rotate arrow to point down
+      arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-down" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6,9 12,15 18,9"/>
+      </svg>`;
+    }
+  } else {
+    console.log('Details row or arrow not found for claim:', claimId);
+  }
+}
+
+function viewFlags(claimId) {
+  hideAllSections();
+  const detailsRow = document.getElementById(`details-${claimId}`);
+  if (detailsRow) {
+    detailsRow.style.display = 'table-row';
+    
+         // Show only the flags section, hide all others
+     const flagsSection = detailsRow.querySelector('.flags-section');
+     const claimInfoSection = detailsRow.querySelector('.claim-info-section');
+     const medicalDetailsSection = detailsRow.querySelector('.medical-details-section');
+     const notesSection = detailsRow.querySelector('.notes-section');
+     
+    // Show flags section
+    if (flagsSection) {
+      flagsSection.style.display = 'block';
+      console.log('Flags section displayed for claim:', claimId);
+      
+      // Check if there are any flags in the section
+      const flagItems = flagsSection.querySelectorAll('.flag-item');
+      console.log('Number of flag items found:', flagItems.length);
+      
+      // If no flags are found, show the "No flags yet" message
+      if (flagItems.length === 0) {
+        const noFlagsMessage = flagsSection.querySelector('div[style*="font-style: italic"]');
+        if (noFlagsMessage) {
+          noFlagsMessage.style.display = 'block';
+        }
+      }
+    }
+    
+    // Hide all other sections
+    if (claimInfoSection) {
+      claimInfoSection.style.display = 'none';
+    }
+    if (medicalDetailsSection) {
+      medicalDetailsSection.style.display = 'none';
+    }
+    if (notesSection) {
+      notesSection.style.display = 'none';
+    }
+    
+    // Also hide the medical details section that doesn't have a specific class
+    const allDetailSections = detailsRow.querySelectorAll('.detail-section');
+    allDetailSections.forEach(section => {
+      if (!section.classList.contains('flags-section')) {
+        section.style.display = 'none';
+      }
+    });
+    
+    // Update arrow to point down when showing flags
+    const arrow = document.getElementById(`arrow-${claimId}`);
+    if (arrow) {
+      arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-down" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="6,9 12,15 18,9"/>
+      </svg>`;
+    }
+  }
+}
+
+function addFlag(claimId) {
+  // Simple flag addition - you can enhance this with a form
+  fetch(`/${claimId}/flag/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: JSON.stringify({})
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Flag added successfully!');
+      // Update the dashboard count
+      updateFlagsCount();
+      // Add the new flag to the display
+      addFlagToDisplay(claimId, data);
+      // Show the flags immediately for this claim
+      viewFlags(claimId);
+    } else {
+      alert('Error adding flag: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error adding flag');
+  });
+}
+
+
+
+function showNoteForm(claimId) {
+  currentClaimId = claimId;
+  document.getElementById('noteModal').style.display = 'block';
+  document.getElementById('noteText').focus();
+}
+
+function hideNoteForm() {
+  document.getElementById('noteModal').style.display = 'none';
+  document.getElementById('noteForm').reset();
+  currentClaimId = null;
+}
+
+function hideDetails(claimId) {
+  const detailsRow = document.getElementById(`details-${claimId}`);
+  const arrow = document.getElementById(`arrow-${claimId}`);
+  if (detailsRow) {
+    detailsRow.style.display = 'none';
+  }
+  if (arrow) {
+    // Reset arrow to point right
+    arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-right" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9,18 15,12 9,6"/>
+    </svg>`;
+  }
+}
+
+function hideAllSections() {
+  // Hide all detail rows
+  document.querySelectorAll('.claim-details-row').forEach(row => {
+    row.style.display = 'none';
+  });
+  
+  // Reset all arrows to point right
+  document.querySelectorAll('.expand-arrow').forEach(arrow => {
+    arrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="lucide lucide-chevron-right" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="9,18 15,12 9,6"/>
+    </svg>`;
+  });
+}
+
+function saveNote(event) {
+  event.preventDefault();
+  
+  if (!currentClaimId) return;
+  
+  const noteText = document.getElementById('noteText').value.trim();
+  if (!noteText) return;
+  
+  fetch(`/${currentClaimId}/note/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    },
+    body: JSON.stringify({ text: noteText })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Note added successfully!');
+      hideNoteForm();
+      location.reload(); // Refresh to show new note
+    } else {
+      alert('Error adding note: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error adding note');
+  });
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('noteModal');
+  if (event.target === modal) {
+    hideNoteForm();
+  }
+}
+
+// Update flags count in dashboard
+function updateFlagsCount() {
+  // Find the flagged claims count element and increment it
+  const flaggedCountElement = document.querySelector('.stat-card:nth-child(2) .card-number');
+  if (flaggedCountElement) {
+    const currentCount = parseInt(flaggedCountElement.textContent) || 0;
+    flaggedCountElement.textContent = currentCount + 1;
+  }
+}
+
+// Add new flag to display
+function addFlagToDisplay(claimId, flagData) {
+  const flagsList = document.getElementById(`flags-${claimId}`);
+  if (flagsList) {
+    const flagItem = document.createElement('div');
+    flagItem.className = 'flag-item';
+    flagItem.style.cssText = `
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border-left: 3px solid #dc3545;
+    `;
+    
+    const timestamp = new Date().toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric'
+    });
+    
+    flagItem.innerHTML = `
+      <div style="color: #666; font-size: 12px; margin-bottom: 5px;">${timestamp}</div>
+      <div style="color: #333;">Flagged by: System</div>
+    `;
+    
+    // Remove "No flags yet" message if it exists
+    const noFlagsMessage = flagsList.querySelector('div[style*="font-style: italic"]');
+    if (noFlagsMessage) {
+      noFlagsMessage.remove();
+    }
+    
+    flagsList.appendChild(flagItem);
+  }
+}
+
+// Pagination variables
+let currentPage = {{ current_page|default:1 }};
+let hasMoreClaims = {{ has_more|yesno:"true,false" }};
+let hasPreviousClaims = {{ has_previous|yesno:"true,false" }};
+
+// Load more claims function
+function loadMoreClaims() {
+  const nextBtn = document.getElementById('nextBtn');
+  if (!hasMoreClaims || (nextBtn && nextBtn.disabled)) return;
+  
+  currentPage++;
+  loadClaimsPage(currentPage);
+}
+
+// Load previous claims function
+function loadPreviousClaims() {
+  const prevBtn = document.getElementById('prevBtn');
+  if (!hasPreviousClaims || currentPage <= 1 || (prevBtn && prevBtn.disabled)) return;
+  
+  currentPage--;
+  loadClaimsPage(currentPage);
+}
+
+// Load claims for a specific page
+function loadClaimsPage(page) {
+  // Get current filter values
+  const statusFilter = document.querySelector('input[value="Denied"]:checked, input[value="Paid"]:checked, input[value="Under Review"]:checked, input[value="Underpaid"]:checked');
+  const insurerFilter = document.querySelector('input[value="Aetna"]:checked, input[value="Blue Cross"]:checked, input[value="Cigna"]:checked, input[value="Humana"]:checked, input[value="UnitedHealth"]:checked, input[value="Other"]:checked');
+  
+  let status = '';
+  let insurer = '';
+  
+  if (statusFilter) status = statusFilter.value;
+  if (insurerFilter) insurer = insurerFilter.value;
+  
+  // Build URL with parameters
+  const url = `{% url 'claims:load_more_claims' %}?page=${page}&status=${status}&insurer=${insurer}`;
+  
+  // Show loading state for the appropriate button
+  const loadMoreBtn = document.getElementById('nextBtn');
+  const loadPrevBtn = document.getElementById('prevBtn');
+  
+  if (page > currentPage && loadMoreBtn) {
+    loadMoreBtn.textContent = '⏳';
+    loadMoreBtn.disabled = true;
+  } else if (page < currentPage && loadPrevBtn) {
+    loadPrevBtn.textContent = '⏳';
+    loadPrevBtn.disabled = true;
+  }
+  
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Replace the tbody content with new claims
+        const tbody = document.querySelector('.claims-table tbody');
+        if (tbody) {
+          tbody.innerHTML = data.html;
+        }
+        
+        // Update pagination state
+        hasMoreClaims = data.has_more;
+        hasPreviousClaims = data.has_previous;
+        currentPage = data.current_page;
+        
+        // Update pagination info
+        updatePaginationInfo();
+        
+        // Re-enable buttons
+        if (page > currentPage && loadMoreBtn) {
+          loadMoreBtn.textContent = '➡️';
+          loadMoreBtn.disabled = false;
+        } else if (page < currentPage && loadPrevBtn) {
+          loadPrevBtn.textContent = '⬅️';
+          loadPrevBtn.disabled = false;
+        }
+        
+        // Re-attach event listeners to new elements
+        reattachEventListeners();
+             } else {
+         alert('Error loading claims: ' + data.error);
+         // Re-enable buttons on error
+         if (page > currentPage && loadMoreBtn) {
+           loadMoreBtn.textContent = '➡️';
+           loadMoreBtn.disabled = false;
+         } else if (page < currentPage && loadPrevBtn) {
+           loadPrevBtn.textContent = '⬅️';
+           loadPrevBtn.disabled = false;
+         }
+       }
+    })
+         .catch(error => {
+       console.error('Error:', error);
+       alert('Error loading claims');
+       // Re-enable buttons on error
+       if (page > currentPage && loadMoreBtn) {
+         loadMoreBtn.textContent = '➡️';
+         loadMoreBtn.disabled = false;
+       } else if (page < currentPage && loadPrevBtn) {
+         loadPrevBtn.textContent = '⬅️';
+         loadPrevBtn.disabled = false;
+       }
+     });
+}
+
+// Update pagination information display
+function updatePaginationInfo() {
+  const paginationInfo = document.querySelector('.pagination-info');
+  if (paginationInfo) {
+    const start = ((currentPage - 1) * 30) + 1;
+    const end = Math.min(currentPage * 30, 100);
+    paginationInfo.textContent = `Showing claims ${start} - ${end}`;
+  }
+  
+  // Update arrow button states
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  
+  if (prevBtn) {
+    if (hasPreviousClaims) {
+      prevBtn.style.opacity = '1';
+      prevBtn.style.cursor = 'pointer';
+      prevBtn.disabled = false;
+    } else {
+      prevBtn.style.opacity = '0.5';
+      prevBtn.style.cursor = 'not-allowed';
+      prevBtn.disabled = true;
+    }
+  }
+  
+  if (nextBtn) {
+    if (hasMoreClaims) {
+      nextBtn.style.opacity = '1';
+      nextBtn.style.cursor = 'pointer';
+      nextBtn.disabled = false;
+    } else {
+      nextBtn.style.opacity = '0.5';
+      nextBtn.style.cursor = 'not-allowed';
+      nextBtn.disabled = true;
+    }
+  }
+}
+
+// Re-attach event listeners to new elements after AJAX load
+function reattachEventListeners() {
+  // Re-attach hover effects to new claim rows
+  const newRows = document.querySelectorAll('.claim-row');
+  newRows.forEach(row => {
+    row.addEventListener('mouseover', function() {
+      this.style.backgroundColor = '#f8f9fa';
+    });
+    row.addEventListener('mouseout', function() {
+      this.style.backgroundColor = 'white';
+    });
+  });
+}
+
+// Export and Report functions
+function exportToExcel() {
+  // Placeholder for Excel export functionality
+  alert('Excel export functionality will be implemented here');
+}
+
+function generateReport() {
+  // Placeholder for report generation functionality
+  alert('Report generation functionality will be implemented here');
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+  // Set initial state
+  showAllClaims();
+  
+  // Initialize pagination
+  updatePaginationInfo();
+});
+</script>
+{% endblock %}

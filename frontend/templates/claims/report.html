@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ERISA Recovery - Analytics Report{% endblock %}
+
+{% block content %}
+<div class="report-container">
+  <!-- Report Header -->
+  <div class="report-header" style="background: #1f2937 !important; background-color: #1f2937 !important;">
+    <h1 class="report-title" style="color: #ffffff !important; background: none !important; -webkit-background-clip: unset !important; background-clip: unset !important; -webkit-text-fill-color: #ffffff !important; text-fill-color: #ffffff !important;">Analytics Report</h1>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="report-content">
+    <!-- Summary Cards Row -->
+  <div class="summary-grid">
+    <!-- Total Claims Card -->
+    <div class="card summary-card">
+      <div class="card-header">
+        <h2 class="card-title">Total Claims</h2>
+        <p class="card-subtitle">All processed claims</p>
+      </div>
+      <div class="summary-number claims">{{ total_claims|floatformat:0 }}</div>
+      <p class="summary-label">Claims Processed</p>
+    </div>
+
+    <!-- Financial Summary Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Financial Summary</h2>
+        <p class="card-subtitle">Key financial metrics</p>
+      </div>
+      <div class="financial-summary">
+        <div class="financial-item billed">
+          <span class="financial-label">Total Billed</span>
+          <span class="financial-value">${{ financial_summary.total_billed|floatformat:0 }}</span>
+        </div>
+        <div class="financial-item paid">
+          <span class="financial-label">Total Paid</span>
+          <span class="financial-value">${{ financial_summary.total_paid|floatformat:0 }}</span>
+        </div>
+        <div class="financial-item underpayment">
+          <span class="financial-label">Total Underpayment</span>
+          <span class="financial-value">${{ total_underpayment|floatformat:0 }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Container -->
+  <div class="charts-container">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Data Visualizations</h2>
+        <p class="card-subtitle">Interactive charts and analytics</p>
+      </div>
+      
+      <div class="charts-grid">
+        <!-- Claims by Status Chart -->
+        <div class="chart-card">
+          <div class="chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Billed vs Paid Chart -->
+        <div class="chart-card">
+          <div class="chart-container">
+            <canvas id="billedPaidChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Underpayment Chart -->
+        <div class="chart-card">
+          <div class="chart-container">
+            <canvas id="underpaymentChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Additional Metrics Row -->
+  <div class="summary-grid">
+    <!-- Top Underpayments Table -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Top Underpayments</h3>
+        <p class="card-subtitle">Highest underpayment cases</p>
+      </div>
+      <div class="table-container">
+        <table style="width: 100%; border-collapse: collapse; background: white;">
+          <thead>
+            <tr style="border-bottom: 2px solid #e5e7eb; background: white;">
+              <th style="padding: 12px 8px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; background: white;">ID</th>
+              <th style="padding: 12px 8px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; background: white;">Patient</th>
+              <th style="padding: 12px 8px; text-align: right; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; background: white;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for claim in top_underpayments %}
+            <tr style="border-bottom: 1px solid #f3f4f6; background: white;">
+              <td style="padding: 12px 8px; font-size: 13px; color: #374151; font-weight: 500; background: white;">{{ claim.claim_id }}</td>
+              <td style="padding: 12px 8px; font-size: 13px; color: #374151; background: white;">{{ claim.patient_name|truncatechars:20 }}</td>
+              <td style="padding: 12px 8px; font-size: 13px; color: #ef4444; font-weight: 600; text-align: right; background: white;">${{ claim.underpayment|floatformat:0 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" style="padding: 24px; text-align: center; color: #6b7280; font-size: 14px;">No underpayment data available</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Analysis Summary -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Analysis Summary</h3>
+        <p class="card-subtitle">Key insights and metrics</p>
+      </div>
+      <div style="display: grid; gap: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px;">
+          <span style="color: #1f2937; font-weight: 500; font-size: 14px;">Flagged Claims</span>
+          <span style="color: #ef4444; font-weight: 700; font-size: 18px;">{{ flagged_claims_count }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px;">
+          <span style="color: #1f2937; font-weight: 500; font-size: 14px;">With Notes</span>
+          <span style="color: #10b981; font-weight: 700; font-size: 18px;">{{ claims_with_notes_count }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px;">
+          <span style="color: #1f2937; font-weight: 500; font-size: 14px;">Avg Underpayment</span>
+          <span style="color: #f59e0b; font-weight: 700; font-size: 18px;">${{ avg_underpayment|floatformat:0 }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- Data for JavaScript -->
+<script>
+  // Pass data from Django to JavaScript
+  window.statusData = {{ status_data|safe }};
+  window.billedPaidData = {{ billed_paid_data|safe }};
+  window.underpaymentData = {{ underpayment_data|safe }};
+</script>
+
+<!-- Load CSS and JavaScript -->
+<link rel="stylesheet" href="{% static 'css/report.css' %}">
+<script src="{% static 'js/report.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,130 @@
+<div style="padding: 2rem;">
+  <!-- Header Section -->
+  <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem;">
+    <h2 style="margin: 0 0 1rem 0; font-size: 2rem;">Claim #{{ claim.id }}</h2>
+    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+      <div>
+        <strong>Status:</strong> 
+        <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 14px;">
+          {{ claim.status }}
+        </span>
+      </div>
+      <div><strong>Patient:</strong> {{ claim.patient_name }}</div>
+      <div><strong>Discharge:</strong> {{ claim.discharge_date }}</div>
+    </div>
+  </div>
+
+  <!-- Financial Summary -->
+  <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border-left: 4px solid #28a745;">
+    <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">💰 Financial Summary</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+      <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-size: 1.5rem; color: #28a745; font-weight: bold;">${{ claim.billed_amount }}</div>
+        <div style="font-size: 0.9rem; color: #6c757d;">Billed Amount</div>
+      </div>
+      <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-size: 1.5rem; color: #dc3545; font-weight: bold;">${{ claim.paid_amount }}</div>
+        <div style="font-size: 0.9rem; color: #6c757d;">Paid Amount</div>
+      </div>
+      <div style="text-align: center; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="font-size: 1.5rem; color: #ffc107; font-weight: bold;">${{ claim.underpayment }}</div>
+        <div style="font-size: 0.9rem; color: #6c757d;">Underpayment</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Claim Details -->
+  <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e9ecef;">
+    <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">📋 Claim Details</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+      <div>
+        <strong>Denial Reason:</strong><br>
+        <span style="color: #6c757d;">{{ claim.detail.denial_reason|default:"No denial reason provided" }}</span>
+      </div>
+      <div>
+        <strong>CPT Codes:</strong><br>
+        <span style="color: #6c757d;">{{ claim.detail.cpt_codes|default:"No CPT codes provided" }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Forms -->
+  <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e9ecef;">
+    <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">⚡ Quick Actions</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+      <!-- Flag Form -->
+      <div style="background: #fff3cd; padding: 1.5rem; border-radius: 8px; border: 1px solid #ffeaa7;">
+        <h4 style="margin: 0 0 1rem 0; color: #856404;">🚩 Flag for Review</h4>
+        <form method="post"
+              hx-post="{% url 'claims:add_flag' claim.id %}"
+              hx-target="#detail-pane"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          <button type="submit" style="width: 100%; padding: 12px; background: #ffc107; color: #212529; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+            🚩 Flag This Claim
+          </button>
+        </form>
+      </div>
+
+      <!-- Note Form -->
+      <div style="background: #d1ecf1; padding: 1.5rem; border-radius: 8px; border: 1px solid #bee5eb;">
+        <h4 style="margin: 0 0 1rem 0; color: #0c5460;">📝 Add Note</h4>
+        <form method="post"
+              hx-post="{% url 'claims:add_note' claim.id %}"
+              hx-target="#detail-pane"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          <textarea name="text" placeholder="Type your note here..." required style="width: 100%; height: 80px; padding: 12px; border: 2px solid #bee5eb; border-radius: 6px; margin-bottom: 1rem; font-family: inherit; resize: vertical;"></textarea>
+          <button type="submit" style="width: 100%; padding: 12px; background: #17a2b8; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+            📝 Save Note
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes Section -->
+  <div style="background: white; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid #e9ecef;">
+    <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">📝 Notes ({{ claim.notes.count }})</h3>
+    {% if claim.notes.all %}
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for n in claim.notes.all|dictsortreversed:"created_at" %}
+          <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; border-left: 4px solid #17a2b8;">
+            <div style="font-size: 0.9rem; color: #6c757d; margin-bottom: 0.5rem;">
+              📅 {{ n.created_at|date:"M d, Y g:i A" }}
+            </div>
+            <div style="color: #495057;">{{ n.text }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 2rem; color: #6c757d;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">📝</div>
+        <p>No notes yet. Add your first note above!</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Flags Section -->
+  <div style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+    <h3 style="margin: 0 0 1rem 0; color: #2c3e50;">🚩 Flags ({{ claim.flags.count }})</h3>
+    {% if claim.flags.all %}
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for f in claim.flags.all|dictsortreversed:"created_at" %}
+          <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <div style="font-size: 0.9rem; color: #856404; margin-bottom: 0.5rem;">
+              🚩 Flagged on {{ f.created_at|date:"M d, Y g:i A" }}
+            </div>
+            <div style="color: #856404;">This claim has been flagged for review</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 2rem; color: #6c757d;">
+        <div style="font-size: 2rem; margin-bottom: 1rem;">🚩</div>
+        <p>No flags yet. Flag this claim for review above!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,248 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://unpkg.com/alpinejs" defer></script>
+  <title>{% block title %}Erisa Claims{% endblock %}</title>
+  <style>
+    /* Modern CSS Reset and Base Styles */
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      margin: 0; 
+      padding: 0;
+      background: white;
+      min-height: 100vh;
+      color: #333;
+    }
+    
+    /* Container and Layout */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: white;
+      min-height: 100vh;
+      box-shadow: 0 0 50px rgba(0,0,0,0.1);
+    }
+    
+    /* Typography */
+    h1 {
+      color: #2c3e50;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Filter Section */
+    .filters {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      border: 1px solid #e9ecef;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .filters input {
+      padding: 12px 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .filters input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .filters button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 120px;
+    }
+    
+    .filters button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Table Styling */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      margin-bottom: 2rem;
+    }
+    
+    th {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-weight: 600;
+      padding: 16px 12px;
+      text-align: left;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    td {
+      padding: 16px 12px;
+      border-bottom: 1px solid #f1f3f4;
+      transition: background-color 0.2s ease;
+    }
+    
+    tr:hover td {
+      background-color: #f8f9fa;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    /* View Button */
+    .view-btn {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 13px;
+    }
+    
+    .view-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    /* Detail Pane */
+    #detail-pane {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      overflow: hidden;
+      margin-top: 2rem;
+    }
+    
+    /* Form Styling */
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 12px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      transition: border-color 0.3s ease;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .container { padding: 1rem; }
+      .filters { flex-direction: column; }
+      .filters input { min-width: auto; }
+      table { font-size: 14px; }
+      th, td { padding: 12px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- CSRF Token for JavaScript -->
+  {% csrf_token %}
+  
+  {% block content %}{% endblock %}
+
+  <!-- Copyright Footer -->
+  <footer style="
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 20px 0;
+    margin-top: 40px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 14px;
+  ">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 0 2rem;">
+      <p style="margin: 0 0 8px 0;">
+        <strong>ERISA Recovery Claims Management System</strong>
+      </p>
+      <p style="margin: 0; font-size: 13px;">
+        © 2025 <strong>Siri Gayatri Chodavarapu</strong> | 
+        <a href="mailto:sirigayatri16@gmail.com" style="color: #667eea; text-decoration: none;">sirigayatri16@gmail.com</a>
+      </p>
+      <p style="margin: 8px 0 0 0; font-size: 12px; color: #adb5bd;">
+        Developed as part of the ERISA Recovery Dev Challenge
+      </p>
+    </div>
+  </footer>
+
+<script>
+  document.body.addEventListener('htmx:beforeRequest', (e) => {
+    console.log('[HTMX beforeRequest]', e.detail);
+  });
+  document.body.addEventListener('htmx:afterOnLoad', (e) => {
+    console.log('[HTMX afterOnLoad]', e.detail);
+  });
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    console.log('[HTMX afterSwap]', e.detail);
+  });
+  document.body.addEventListener('htmx:error', (e) => {
+    console.error('[HTMX error]', e.detail);
+  });
+  
+  // Test if HTMX is loaded
+  console.log('HTMX loaded:', typeof htmx !== 'undefined');
+  if (typeof htmx !== 'undefined') {
+    console.log('HTMX version:', htmx.version);
+  }
+  
+  // Auto-scroll to detail pane after HTMX content loads
+  document.body.addEventListener('htmx:afterSwap', (e) => {
+    // Check if this is a detail pane update
+    if (e.target.id === 'detail-pane') {
+      // Smooth scroll to the detail pane
+      e.target.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  });
+</script>
+</body>
+</html>
