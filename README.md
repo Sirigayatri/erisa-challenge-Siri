@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # ERISA Recovery Claims Management System
 
 ## Overview
@@ -73,7 +73,7 @@ python manage.py runserver
 
 ## Project Structure
 
-```
+
 erisa_recovery/
 ├── database/                 # Database models and migrations
 │   ├── models.py            # Claim, ClaimDetail, Flag, Note models
@@ -102,7 +102,7 @@ erisa_recovery/
 ├── claim_detail_data.csv    # Sample claim details data
 ├── requirements.txt         # Python dependencies
 └── manage.py                # Django management script
-```
+
 
 ## Key Features
 
