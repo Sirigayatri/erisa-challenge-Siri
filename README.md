@@ -1,5 +1,11 @@
 
-# ERISA Recovery Claims Management System
+# ERISA Recovery – Claims Management Dashboard  
+
+A Django-based web application to manage healthcare claims and track underpayments.  
+
+🔗 **Live Demo:** [sirigayatri16.pythonanywhere.com](https://sirigayatri16.pythonanywhere.com/)  
+💻 **GitHub Repo:** [erisa-challenge-Siri](https://github.com/Sirigayatri/erisa-challenge-Siri)  
+
 
 ## Overview
 
@@ -20,7 +26,7 @@ This is a web-based application built with Django that helps manage healthcare c
 ## Technical Requirements
 
 - Python 3.8 or higher
-- Django 5.2.5
+- Django 4.2.7
 - SQLite database
 - Modern web browser
 - Chart.js (loaded via CDN for report page only)
@@ -270,9 +276,9 @@ This project is part of the ERISA Recovery Dev Challenge and is intended for dem
 **Developer:** Siri Gayatri Chodavarapu  
 **Email:** sirigayatri16@gmail.com
 
-This project was developed as part of the ERISA Recovery Dev Challenge to demonstrate skills in Django web development, database management, and interactive data visualization.
+## License
+This project is licensed for **demonstration purposes only** as part of the ERISA Recovery Dev Challenge.
+
 
 =======
-# erisa-challenge-Siri
-Erisa Recovery Dev Challenge
->>>>>>> 049803b7ea54f69b50d0438096b620d89caaccfc
+
