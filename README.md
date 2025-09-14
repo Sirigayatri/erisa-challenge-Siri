@@ -77,6 +77,18 @@ python manage.py runserver
 8. **Open your browser**
    Navigate to `http://127.0.0.1:8000`
 
+
+
+## 🖼 Screenshots
+
+<img width="1920" height="1080" alt="dashboard" src="https://github.com/user-attachments/assets/3284faa9-3387-406b-a699-b230f39301e2" />
+
+
+
+
+<img width="1920" height="1080" alt="report" src="https://github.com/user-attachments/assets/b6562efc-71e1-4cab-9c14-8c2c8f7e7075" />
+
+
 ## Project Structure
 
 
